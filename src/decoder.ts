@@ -50,3 +50,18 @@ export function array<T>(d: Decoder<T>): Decoder<T[]> {
     }
   };
 }
+
+export function object<T>(d: { [K in keyof T]: Decoder<T[K]> }): Decoder<T> {
+  return {
+    run(value: unknown): T {
+      if (typeof value !== "object" || value === null) {
+        throw new Error(value + " is not an object!");
+      }
+      const ret: any = {};
+      for (const key in d) {
+        ret[key] = d[key].run((value as any)[key]);
+      }
+      return ret;
+    }
+  };
+}
