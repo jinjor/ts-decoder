@@ -6,7 +6,8 @@ import {
   optional,
   array,
   object,
-  oneOf
+  oneOf,
+  map
 } from "../src/decoder";
 
 test("boolean decoder", () => {
@@ -93,7 +94,18 @@ test("oneOf decoder", () => {
   for (const value of [true, 1, [], [""]]) {
     expect(decoder.run(value)).toEqual(value);
   }
-  for (const value of ["", null, undefined, [1]]) {
+  for (const value of ["", null, undefined, [1], {}]) {
+    expect(() => decoder.run(value)).toThrow();
+  }
+});
+
+test("map decoder", () => {
+  const f = (n: number) => String(n);
+  const decoder = map(f, number);
+  for (const value of [1]) {
+    expect(decoder.run(value)).toEqual(f(value));
+  }
+  for (const value of [true, "", null, undefined, [1], {}]) {
     expect(() => decoder.run(value)).toThrow();
   }
 });

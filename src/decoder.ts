@@ -80,3 +80,11 @@ export function oneOf<T>(d: Decoder<T>[]): Decoder<T> {
     }
   };
 }
+
+export function map<T, U>(f: (t: T) => U, d: Decoder<T>): Decoder<U> {
+  return {
+    run(value: unknown): U {
+      return f(d.run(value));
+    }
+  };
+}
