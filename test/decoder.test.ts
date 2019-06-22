@@ -1,47 +1,60 @@
 import "jest";
-import { bool, number, string, optional, array, object } from "../src/decoder";
+import {
+  boolean,
+  number,
+  string,
+  optional,
+  array,
+  object
+} from "../src/decoder";
 
 test("boolean decoder", () => {
+  const decoder = boolean;
   for (const value of [true, false]) {
-    expect(bool.run(value)).toBe(value);
+    expect(decoder.run(value)).toBe(value);
   }
   for (const value of [1, "", {}, [], null, undefined]) {
-    expect(() => bool.run(value)).toThrow();
+    expect(() => decoder.run(value)).toThrow();
   }
 });
+
 test("number decoder", () => {
+  const decoder = number;
   for (const value of [-1, 0, 1, Infinity, -Infinity]) {
-    expect(number.run(value)).toBe(value);
+    expect(decoder.run(value)).toBe(value);
   }
   for (const value of [true, "", {}, [], null, undefined]) {
-    expect(() => number.run(value)).toThrow();
+    expect(() => decoder.run(value)).toThrow();
   }
 });
 
 test("string decoder", () => {
+  const decoder = string;
   for (const value of [""]) {
-    expect(string.run(value)).toBe(value);
+    expect(decoder.run(value)).toBe(value);
   }
   for (const value of [true, 1, {}, [], null, undefined]) {
-    expect(() => string.run(value)).toThrow();
+    expect(() => decoder.run(value)).toThrow();
   }
 });
 
 test("optional decoder", () => {
+  const decoder = optional(string);
   for (const value of ["", null, undefined]) {
-    expect(optional(string).run(value)).toBe(value);
+    expect(decoder.run(value)).toBe(value);
   }
   for (const value of [true, 1, {}, []]) {
-    expect(() => optional(string).run(value)).toThrow();
+    expect(() => decoder.run(value)).toThrow();
   }
 });
 
 test("array decoder", () => {
+  const decoder = array(number);
   for (const value of [[], [1], [0, 1]]) {
-    expect(array(number).run(value)).toEqual(value);
+    expect(decoder.run(value)).toEqual(value);
   }
   for (const value of [true, 1, "", {}, null, undefined]) {
-    expect(() => array(number).run(value)).toThrow();
+    expect(() => decoder.run(value)).toThrow();
   }
 });
 
