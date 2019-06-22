@@ -1,5 +1,5 @@
 import "jest";
-import { bool, number, string } from "../src/decoder";
+import { bool, number, string, optional } from "../src/decoder";
 
 test("boolean decoder", () => {
   for (const value of [true, false]) {
@@ -24,5 +24,14 @@ test("string decoder", () => {
   }
   for (const value of [true, 1, {}, [], null, undefined]) {
     expect(() => string.run(value)).toThrow();
+  }
+});
+
+test("optional decoder", () => {
+  for (const value of ["", null, undefined]) {
+    expect(optional(string).run(value)).toBe(value);
+  }
+  for (const value of [true, 1, {}, []]) {
+    expect(() => optional(string).run(value)).toThrow();
   }
 });

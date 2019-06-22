@@ -28,3 +28,14 @@ export const string: Decoder<string> = {
     return value;
   }
 };
+
+export function optional<T>(d: Decoder<T>): Decoder<T> {
+  return {
+    run(value: unknown) {
+      if (value === null || value === undefined) {
+        return value;
+      }
+      return d.run(value);
+    }
+  };
+}
