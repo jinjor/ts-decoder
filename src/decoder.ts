@@ -65,3 +65,18 @@ export function object<T>(d: { [K in keyof T]: Decoder<T[K]> }): Decoder<T> {
     }
   };
 }
+
+export function oneOf<T>(d: Decoder<T>[]): Decoder<T> {
+  return {
+    run(value: unknown): T {
+      for (const decoder of d) {
+        try {
+          return decoder.run(value);
+        } catch (e) {}
+      }
+      throw new Error(
+        value + " cannot be decoded by any of " + d.length + " decoders!"
+      );
+    }
+  };
+}

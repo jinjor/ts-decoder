@@ -5,7 +5,8 @@ import {
   string,
   optional,
   array,
-  object
+  object,
+  oneOf
 } from "../src/decoder";
 
 test("boolean decoder", () => {
@@ -79,6 +80,20 @@ test("object decoder", () => {
     { n: 1, s: null },
     { n: null, s: "" }
   ]) {
+    expect(() => decoder.run(value)).toThrow();
+  }
+});
+
+test("oneOf decoder", () => {
+  const decoder = oneOf<boolean | number | string[]>([
+    boolean,
+    number,
+    array(string)
+  ]);
+  for (const value of [true, 1, [], [""]]) {
+    expect(decoder.run(value)).toEqual(value);
+  }
+  for (const value of ["", null, undefined, [1]]) {
     expect(() => decoder.run(value)).toThrow();
   }
 });
