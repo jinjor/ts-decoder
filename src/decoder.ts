@@ -39,3 +39,14 @@ export function optional<T>(d: Decoder<T>): Decoder<T> {
     }
   };
 }
+
+export function array<T>(d: Decoder<T>): Decoder<T[]> {
+  return {
+    run(value: unknown) {
+      if (!Array.isArray(value)) {
+        throw new Error(value + " is not an array!");
+      }
+      return value.map(d.run.bind(d));
+    }
+  };
+}
