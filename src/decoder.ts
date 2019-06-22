@@ -10,3 +10,12 @@ export const bool: Decoder<boolean> = {
     return value;
   }
 };
+
+export const number: Decoder<number> = {
+  run(value: unknown) {
+    if (typeof value !== "number") {
+      throw new Error(value + " is not a nubmer!");
+    }
+    return value;
+  }
+};
