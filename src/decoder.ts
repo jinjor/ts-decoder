@@ -19,3 +19,12 @@ export const number: Decoder<number> = {
     return value;
   }
 };
+
+export const string: Decoder<string> = {
+  run(value: unknown) {
+    if (typeof value !== "string") {
+      throw new Error(value + " is not a string!");
+    }
+    return value;
+  }
+};
