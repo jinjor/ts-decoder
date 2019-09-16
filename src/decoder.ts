@@ -1,11 +1,19 @@
-interface Decoder<T> {
+export interface Decoder<T> {
   run(value: unknown): T;
 }
+
+export class DecodeError extends Error {}
+
+export const any: Decoder<any> = {
+  run(value: any) {
+    return value;
+  }
+};
 
 export const boolean: Decoder<boolean> = {
   run(value: unknown) {
     if (typeof value !== "boolean") {
-      throw new Error(value + " is not a boolean!");
+      throw new DecodeError(value + " is not a boolean!");
     }
     return value;
   }
@@ -14,7 +22,7 @@ export const boolean: Decoder<boolean> = {
 export const number: Decoder<number> = {
   run(value: unknown) {
     if (typeof value !== "number") {
-      throw new Error(value + " is not a nubmer!");
+      throw new DecodeError(value + " is not a nubmer!");
     }
     return value;
   }
@@ -23,17 +31,29 @@ export const number: Decoder<number> = {
 export const string: Decoder<string> = {
   run(value: unknown) {
     if (typeof value !== "string") {
-      throw new Error(value + " is not a string!");
+      throw new DecodeError(value + " is not a string!");
     }
     return value;
   }
 };
 
-export function optional<T>(d: Decoder<T>): Decoder<T> {
+export function pattern(regex: RegExp): Decoder<string> {
+  return {
+    run(value: unknown) {
+      const s = string.run(value);
+      if (!s.match(regex)) {
+        throw new DecodeError(value + " does not match the pattern " + regex);
+      }
+      return s;
+    }
+  };
+}
+
+export function optional<T>(d: Decoder<T>, alternative?: T): Decoder<T | null> {
   return {
     run(value: unknown) {
       if (value === null || value === undefined) {
-        return value;
+        return alternative || null;
       }
       return d.run(value);
     }
@@ -44,22 +64,37 @@ export function array<T>(d: Decoder<T>): Decoder<T[]> {
   return {
     run(value: unknown) {
       if (!Array.isArray(value)) {
-        throw new Error(value + " is not an array!");
+        throw new DecodeError(value + " is not an array!");
       }
       return value.map(d.run.bind(d));
     }
   };
 }
-
+export type DecodermMap<T> = { [K in keyof T]: Decoder<T[K]> };
 export function object<T>(d: { [K in keyof T]: Decoder<T[K]> }): Decoder<T> {
   return {
     run(value: unknown): T {
-      if (typeof value !== "object" || value === null) {
-        throw new Error(value + " is not an object!");
+      if (typeof value !== "object" || value === null || Array.isArray(value)) {
+        throw new DecodeError(value + " is not an object!");
       }
       const ret: any = {};
       for (const key in d) {
         ret[key] = d[key].run((value as any)[key]);
+      }
+      return ret;
+    }
+  };
+}
+
+export function dict<V>(d: Decoder<V>): Decoder<{ [key: string]: V }> {
+  return {
+    run(value: unknown): { [key: string]: V } {
+      if (typeof value !== "object" || value === null || Array.isArray(value)) {
+        throw new DecodeError(value + " is not an object!");
+      }
+      const ret: { [key: string]: V } = {};
+      for (const key in value) {
+        ret[key] = d.run((value as any)[key]);
       }
       return ret;
     }
@@ -74,9 +109,22 @@ export function oneOf<T>(d: Decoder<T>[]): Decoder<T> {
           return decoder.run(value);
         } catch (e) {}
       }
-      throw new Error(
+      throw new DecodeError(
         value + " cannot be decoded by any of " + d.length + " decoders!"
       );
+    }
+  };
+}
+
+export function keywords<T, V extends T>(keywords: V[]): Decoder<T> {
+  return {
+    run(value: unknown): T {
+      for (const keyword of keywords) {
+        if (keyword === value) {
+          return keyword;
+        }
+      }
+      throw new DecodeError(value + " should be one of " + keywords);
     }
   };
 }
@@ -85,6 +133,32 @@ export function map<T, U>(f: (t: T) => U, d: Decoder<T>): Decoder<U> {
   return {
     run(value: unknown): U {
       return f(d.run(value));
+    }
+  };
+}
+
+export function toInt(d: Decoder<string>): Decoder<number> {
+  return {
+    run(value: unknown): number {
+      const s = d.run(value);
+      const n = parseFloat(s);
+      if (!Number.isInteger(n)) {
+        throw new DecodeError(s + " is not an int!");
+      }
+      return n;
+    }
+  };
+}
+
+export function toNumber(d: Decoder<string>): Decoder<number> {
+  return {
+    run(value: unknown): number {
+      const s = d.run(value);
+      const n = parseFloat(s);
+      if (isNaN(n)) {
+        throw new DecodeError(s + " is not a number!");
+      }
+      return n;
     }
   };
 }
