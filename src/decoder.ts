@@ -4,11 +4,22 @@ export interface Decoder<T> {
 
 export class DecodeError extends Error {}
 
-export const any: Decoder<any> = {
-  run(value: any) {
+export const any: Decoder<unknown> = {
+  run(value: unknown) {
     return value;
   }
 };
+
+export function is<T>(v: T): Decoder<T> {
+  return {
+    run(value: unknown) {
+      if (v === value) {
+        return value as T;
+      }
+      throw new DecodeError(value + " is not " + v + "!");
+    }
+  };
+}
 
 export const boolean: Decoder<boolean> = {
   run(value: unknown) {
@@ -19,28 +30,58 @@ export const boolean: Decoder<boolean> = {
   }
 };
 
-export const number: Decoder<number> = {
-  run(value: unknown) {
-    if (typeof value !== "number") {
-      throw new DecodeError(value + " is not a nubmer!");
-    }
-    return value;
-  }
+type NumberOptions = {
+  isInt?: boolean;
+  min?: number;
+  max?: number;
 };
 
-export const string: Decoder<string> = {
-  run(value: unknown) {
-    if (typeof value !== "string") {
-      throw new DecodeError(value + " is not a string!");
+export function number(options?: NumberOptions): Decoder<number> {
+  const { min, max, isInt = false } = options ?? {};
+  return {
+    run(value: unknown) {
+      if (typeof value !== "number") {
+        throw new DecodeError(value + " is not a nubmer!");
+      }
+      if (isInt && !Number.isInteger(value)) {
+        throw new DecodeError(value + " is not an integer!");
+      }
+      if (min != null && value < min) {
+        throw new DecodeError(value + " is less than " + min);
+      }
+      if (max != null && value > max) {
+        throw new DecodeError(value + " is greater than " + max);
+      }
+      return value;
     }
-    return value;
-  }
-};
+  };
+}
+
+export function string(options?: {
+  minLength?: number;
+  maxLength?: number;
+}): Decoder<string> {
+  const { minLength, maxLength } = options ?? {};
+  return {
+    run(value: unknown) {
+      if (typeof value !== "string") {
+        throw new DecodeError(value + " is not a string!");
+      }
+      if (minLength != null && value.length < minLength) {
+        throw new DecodeError(value + " is longer than " + minLength);
+      }
+      if (maxLength != null && value.length > maxLength) {
+        throw new DecodeError(value + " is shorter than " + maxLength);
+      }
+      return value;
+    }
+  };
+}
 
 export function pattern(regex: RegExp): Decoder<string> {
   return {
     run(value: unknown) {
-      const s = string.run(value);
+      const s = string().run(value);
       if (!s.match(regex)) {
         throw new DecodeError(value + " does not match the pattern " + regex);
       }
@@ -49,11 +90,11 @@ export function pattern(regex: RegExp): Decoder<string> {
   };
 }
 
-export function optional<T>(d: Decoder<T>, alternative?: T): Decoder<T | null> {
+export function optional<T>(d: Decoder<T>): Decoder<T | null | undefined> {
   return {
     run(value: unknown) {
       if (value === null || value === undefined) {
-        return alternative || null;
+        return value;
       }
       return d.run(value);
     }
@@ -70,7 +111,7 @@ export function array<T>(d: Decoder<T>): Decoder<T[]> {
     }
   };
 }
-export type DecodermMap<T> = { [K in keyof T]: Decoder<T[K]> };
+
 export function object<T>(d: { [K in keyof T]: Decoder<T[K]> }): Decoder<T> {
   return {
     run(value: unknown): T {
@@ -137,28 +178,29 @@ export function map<T, U>(f: (t: T) => U, d: Decoder<T>): Decoder<U> {
   };
 }
 
-export function toInt(d: Decoder<string>): Decoder<number> {
+function strAs<T>(convert: (value: string) => T): Decoder<T> {
   return {
-    run(value: unknown): number {
-      const s = d.run(value);
-      const n = parseFloat(s);
-      if (!Number.isInteger(n)) {
-        throw new DecodeError(s + " is not an int!");
-      }
-      return n;
+    run(value: unknown): T {
+      const s = string().run(value);
+      return convert(s);
     }
   };
 }
 
-export function toNumber(d: Decoder<string>): Decoder<number> {
-  return {
-    run(value: unknown): number {
-      const s = d.run(value);
-      const n = parseFloat(s);
-      if (isNaN(n)) {
-        throw new DecodeError(s + " is not a number!");
-      }
-      return n;
+export function strAsNumber(numberOptions: NumberOptions): Decoder<number> {
+  return strAs(s => {
+    const n = parseFloat(s);
+    return number(numberOptions).run(n);
+  });
+}
+
+export function strAsBoolean(): Decoder<boolean> {
+  return strAs(s => {
+    if (s === "true") {
+      return true;
+    } else if (s === "false") {
+      return false;
     }
-  };
+    throw new DecodeError(s + " is not a boolean!");
+  });
 }

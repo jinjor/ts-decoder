@@ -21,7 +21,7 @@ test("boolean decoder", () => {
 });
 
 test("number decoder", () => {
-  const decoder = number;
+  const decoder = number();
   for (const value of [-1, 0, 1, Infinity, -Infinity]) {
     expect(decoder.run(value)).toBe(value);
   }
@@ -31,7 +31,7 @@ test("number decoder", () => {
 });
 
 test("string decoder", () => {
-  const decoder = string;
+  const decoder = string();
   for (const value of [""]) {
     expect(decoder.run(value)).toBe(value);
   }
@@ -41,7 +41,7 @@ test("string decoder", () => {
 });
 
 test("optional decoder", () => {
-  const decoder = optional(string);
+  const decoder = optional(string());
   for (const value of ["", null, undefined]) {
     expect(decoder.run(value)).toBe(value);
   }
@@ -51,7 +51,7 @@ test("optional decoder", () => {
 });
 
 test("array decoder", () => {
-  const decoder = array(number);
+  const decoder = array(number());
   for (const value of [[], [1], [0, 1]]) {
     expect(decoder.run(value)).toEqual(value);
   }
@@ -62,8 +62,8 @@ test("array decoder", () => {
 
 test("object decoder", () => {
   const decoder = object({
-    n: number,
-    s: string
+    n: number(),
+    s: string()
   });
   for (const value of [{ n: 1, s: "" }]) {
     expect(decoder.run(value)).toEqual(value);
@@ -88,8 +88,8 @@ test("object decoder", () => {
 test("oneOf decoder", () => {
   const decoder = oneOf<boolean | number | string[]>([
     boolean,
-    number,
-    array(string)
+    number(),
+    array(string())
   ]);
   for (const value of [true, 1, [], [""]]) {
     expect(decoder.run(value)).toEqual(value);
@@ -101,7 +101,7 @@ test("oneOf decoder", () => {
 
 test("map decoder", () => {
   const f = (n: number) => String(n);
-  const decoder = map(f, number);
+  const decoder = map(f, number());
   for (const value of [1]) {
     expect(decoder.run(value)).toEqual(f(value));
   }
