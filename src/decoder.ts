@@ -30,10 +30,12 @@ export const boolean: Decoder<boolean> = {
   }
 };
 
-type NumberOptions = {
-  isInt?: boolean;
+type IntOptions = {
   min?: number;
   max?: number;
+};
+type NumberOptions = IntOptions & {
+  isInt?: boolean;
 };
 
 export function number(options?: NumberOptions): Decoder<number> {
@@ -55,6 +57,10 @@ export function number(options?: NumberOptions): Decoder<number> {
       return value;
     }
   };
+}
+
+export function int(options?: IntOptions): Decoder<number> {
+  return number({ isInt: true, ...options });
 }
 
 export function string(options?: {
@@ -90,11 +96,14 @@ export function pattern(regex: RegExp): Decoder<string> {
   };
 }
 
-export function optional<T>(d: Decoder<T>): Decoder<T | null | undefined> {
+export function optional<T>(
+  d: Decoder<T>,
+  defaultValue?: T
+): Decoder<T | undefined> {
   return {
     run(value: unknown) {
-      if (value === null || value === undefined) {
-        return value;
+      if (value == null) {
+        return defaultValue;
       }
       return d.run(value);
     }
@@ -187,11 +196,15 @@ function strAs<T>(convert: (value: string) => T): Decoder<T> {
   };
 }
 
-export function strAsNumber(numberOptions: NumberOptions): Decoder<number> {
+export function strAsNumber(options?: NumberOptions): Decoder<number> {
   return strAs(s => {
     const n = parseFloat(s);
-    return number(numberOptions).run(n);
+    return number(options).run(n);
   });
+}
+
+export function strAsInt(options?: IntOptions): Decoder<number> {
+  return strAsNumber({ isInt: true, ...options });
 }
 
 export function strAsBoolean(): Decoder<boolean> {
